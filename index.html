@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobParaguay - Tu próximo desafío empieza acá</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Check for dark mode preference before page render
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#25d466',
+                            dark: '#1da851',
+                            light: '#dcfce7',
+                        },
+                        forest: '#013220',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease;
+        }
+        .job-card:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Estilos para la ventana emergente (Modal) */
+        .modal {
+            display: none;
+            position: fixed; 
+            z-index: 1000; 
+            left: 0; top: 0;
+            width: 100%; height: 100%; 
+            background-color: rgba(0,0,0,0.6);
+            overflow: auto;
+        }
+
+        .modal.active {
+            display: block;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 24px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: modalFadeIn 0.3s;
+        }
+
+        /* Modal Dark Mode Styles */
+        .dark .modal-content {
+            background-color: #1e293b;
+            border-color: #334155;
+            color: #f8fafc;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover { color: black; }
+        .dark .close:hover { color: white; }
+
+        .ad-box {
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            border: 1px solid #e2e8f0;
+        }
+        .dark .ad-box {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        .contact-box {
+            background: #e8f5e9;
+            padding: 12px;
+            border: 1px dashed #25D366;
+            font-size: 1.1em;
+            margin: 10px 0;
+            color: #1b5e20;
+            word-break: break-all;
+            border-radius: 8px;
+        }
+        .dark .contact-box {
+            background: rgba(37, 212, 102, 0.1);
+            color: #4ade80;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4"
+  }
+}
+</script>
+</head>
+<body class="bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100">
+    <div id="root"></div>
+
+    <!-- ESTO ES EL MODAL (VENTANA EMERGENTE) -->
+    <div id="modalOferta" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal()">&times;</span>
+            
+            <h2 id="modalTitulo" class="text-2xl font-bold mb-4 dark:text-white">Titulo del Empleo</h2>
+            
+            <div class="ad-box">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">🌟 Espacio Publicitario 🌟</p>
+                <div style="background:#ddd; height:100px; display:flex; align-items:center; justify-content:center; margin: 15px 0; border-radius: 6px;" class="dark:bg-slate-800">
+                    <span class="text-gray-600 dark:text-slate-400">Publicidad Aquí</span>
+                </div>
+            </div>
+
+            <p class="text-gray-600 dark:text-slate-400 mb-2">Para postularte, envía tu CV a:</p>
+            
+            <div class="contact-box">
+                <strong id="modalContacto">cargando...</strong>
+            </div>
+            
+            <br>
+            <a id="btnAccion" href="#" class="btn shadow-lg" style="background:#25d466" target="_blank">Abrir Correo Automáticamente</a>
+        </div>
+    </div>
+
+    <script>
+        window.verOferta = (titulo, linkContacto) => {
+            document.getElementById('modalTitulo').innerText = titulo;
+            const modalContacto = document.getElementById('modalContacto');
+            const btnAccion = document.getElementById('btnAccion');
+            
+            if(linkContacto.includes('@')) {
+                modalContacto.innerText = linkContacto;
+                btnAccion.href = "mailto:" + linkContacto + "?subject=Postulación para: " + titulo;
+                btnAccion.innerText = "Enviar Email";
+            } else {
+                modalContacto.innerText = "Clic abajo para ir al sitio/WhatsApp";
+                btnAccion.href = linkContacto;
+                btnAccion.innerText = "Ir al enlace";
+            }
+            document.getElementById('modalOferta').style.display = "block";
+            document.getElementById('modalOferta').classList.add('active');
+        }
+
+        window.cerrarModal = () => {
+            document.getElementById('modalOferta').style.display = "none";
+            document.getElementById('modalOferta').classList.remove('active');
+        };
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('modalOferta');
+            if (event.target == modal) {
+                cerrarModal();
+            }
+        };
+    </script>
+</body>
+</html>
