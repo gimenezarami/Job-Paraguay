@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Filters } from './components/Filters';
@@ -9,106 +9,51 @@ import { AdBanner } from './components/AdBanner';
 import { SponsoredCard } from './components/SponsoredCard';
 import { Job, FilterState } from './types';
 
-const MOCK_JOBS: Job[] = [
-  {
-    id: 'vendedor-001',
-    title: 'Vendedor Técnico Industrial',
-    company: 'Importante Empresa del Sector',
-    location: 'Asunción y Alrededores',
-    requirements: [
-      'Formación comercial o técnica (Electromecánica, Industrial o afines)',
-      'Conocimientos técnicos aplicados a la venta',
-      'Experiencia en ventas, negociación y gestión comercial',
-      'Conocimiento en metalúrgica, carpintería, metálica o ferretería industrial',
-      'Elaboración y seguimiento de reportes de ventas',
-      'Manejo de herramientas informáticas',
-      'Movilidad propia (moto)'
-    ],
-    postedAt: 'hace unos momentos',
-    isNew: true,
-    badgeText: 'BÚSQUEDA ACTIVA',
-    type: 'Full-time',
-    contactInfo: 'recruitmentt2025@hotmail.com o al 0981566148',
-    logo: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?auto=format&fit=crop&q=80&w=150&h=150'
-  },
-  {
-    id: '1',
-    title: 'Contador/a',
-    company: 'Confidencial',
-    location: 'Luque, Central',
-    requirements: [
-      'Egresado de la carrera de Contabilidad',
-      'Mínimo 2 años de experiencia comprobable',
-      'Manejo de Excel Avanzado'
-    ],
-    postedAt: 'hace 2 horas',
-    isNew: true,
-    type: 'Full-time',
-    logo: 'https://picsum.photos/seed/acc/100/100'
-  },
-  {
-    id: '2',
-    title: 'Jefe/a de Logística',
-    company: 'Logística Express S.A.',
-    location: 'Asunción',
-    requirements: [
-      'Licenciado en Administración o Ingeniería Comercial',
-      '2 años de experiencia en rubro logístico'
-    ],
-    postedAt: 'hace 5 horas',
-    isNew: false,
-    type: 'Full-time',
-    logo: 'https://picsum.photos/seed/log/100/100'
-  },
-  {
-    id: '3',
-    title: 'Asesor/a Legal',
-    company: 'Estudio Jurídico Díaz & Asoc.',
-    location: 'Fernando de la Mora',
-    requirements: [
-      'Abogado/a Matriculado/a',
-      '3 años de experiencia en litigios civiles',
-      'Conocimiento de portal DNCP'
-    ],
-    postedAt: 'ayer',
-    isNew: false,
-    type: 'Full-time',
-    logo: 'https://picsum.photos/seed/law/100/100'
-  },
-  {
-    id: '4',
-    title: 'Desarrollador React Senior',
-    company: 'TechSolutions PY',
-    location: 'Remoto',
-    requirements: [
-      '5+ años de experiencia con React y TypeScript',
-      'Inglés avanzado',
-      'Conocimiento de metodologías ágiles'
-    ],
-    postedAt: 'hace 1 día',
-    isNew: true,
-    type: 'Remote',
-    logo: 'https://picsum.photos/seed/tech/100/100'
-  }
-];
-
 export default function App() {
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [locationQuery, setLocationQuery] = useState('');
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<FilterState>({
     date: 'all',
     type: []
   });
 
+  // Cargar ofertas desde el JSON (El Script Mágico)
+  useEffect(() => {
+    fetch('ofertas.json')
+      .then(response => response.json())
+      .then(data => {
+        const mappedJobs: Job[] = data.map((item: any, index: number) => ({
+          id: `job-${index}-${Date.now()}`,
+          title: item.titulo,
+          company: "Empresa Local", // Valor por defecto ya que el JSON simplificado no lo tiene
+          location: item.ubicacion,
+          requirements: item.descripcion ? item.descripcion.split('\n') : [],
+          postedAt: item.fecha,
+          isNew: index < 3, // Marcamos las primeras 3 como nuevas
+          type: 'Full-time',
+          contactInfo: item.link,
+          logo: `https://picsum.photos/seed/${index}/100/100`
+        }));
+        setJobs(mappedJobs);
+        setLoading(false);
+      })
+      .catch(error => {
+        console.error("Error cargando ofertas.json:", error);
+        setLoading(false);
+      });
+  }, []);
+
   const filteredJobs = useMemo(() => {
-    return MOCK_JOBS.filter(job => {
+    return jobs.filter(job => {
       const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                            job.company.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesLocation = job.location.toLowerCase().includes(locationQuery.toLowerCase());
       const matchesType = filters.type.length === 0 || filters.type.includes(job.type);
       return matchesSearch && matchesLocation && matchesType;
     });
-  }, [searchQuery, locationQuery, filters]);
+  }, [jobs, searchQuery, locationQuery, filters]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-slate-950 transition-colors duration-300">
@@ -139,20 +84,30 @@ export default function App() {
 
           <div className="col-span-1 lg:col-span-9 space-y-6">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Empleos recientes</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                {loading ? 'Cargando empleos...' : 'Empleos recientes'}
+              </h2>
               <span className="text-sm text-gray-500 dark:text-slate-400">
-                Mostrando {filteredJobs.length} resultados
+                {loading ? '---' : `Mostrando ${filteredJobs.length} resultados`}
               </span>
             </div>
 
-            {filteredJobs.map((job, index) => (
-              <React.Fragment key={job.id}>
-                <JobCard job={job} />
-                {index === 1 && <SponsoredCard />}
-              </React.Fragment>
-            ))}
+            {loading ? (
+              <div className="flex flex-col gap-4">
+                 {[1,2,3].map(i => (
+                   <div key={i} className="h-48 bg-gray-200 dark:bg-slate-900 animate-pulse rounded-xl"></div>
+                 ))}
+              </div>
+            ) : (
+              filteredJobs.map((job, index) => (
+                <React.Fragment key={job.id}>
+                  <JobCard job={job} />
+                  {index === 1 && <SponsoredCard />}
+                </React.Fragment>
+              ))
+            )}
 
-            {filteredJobs.length === 0 && (
+            {!loading && filteredJobs.length === 0 && (
               <div className="bg-white dark:bg-slate-900 p-12 rounded-xl text-center border border-dashed border-gray-300 dark:border-slate-800">
                 <p className="text-gray-500 dark:text-slate-400">No se encontraron empleos que coincidan con tu búsqueda.</p>
               </div>
